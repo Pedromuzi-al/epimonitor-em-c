@@ -13,7 +13,8 @@ char *bairros[BAIRROS] = {
 char *sintomasNome[SINT] = {
     "Febre","Dor de cabeca","Dor de barriga",
     "Tosse","Vomito","Diarreia",
-    "Dor no corpo","Dor de garganta"
+    "Dor no corpo","Dor de garganta",
+    "Coriza","Fadiga","Calafrios","Perda de olfato"
 };
 
 char *doencas[DOENCAS] = {
@@ -44,29 +45,83 @@ void limparBuffer() {
     while (getchar() != '\n');
 }
 
-// ───────── DIAGNÓSTICO ─────────
-int detectarDoenca(int s[]) {
+// ───────── NOVO DIAGNÓSTICO (COM PORCENTAGEM) ─────────
+void detectarDoenca(int s[], float porcentagem[], int *maisProvavel) {
+
     int score[DOENCAS] = {0};
 
-    if (s[0]) { score[0]++; score[2]++; score[4]++; score[5]++; }
-    if (s[1]) { score[0]++; score[2]++; score[5]++; }
-    if (s[2]) { score[3]++; score[6]++; score[7]++; }
-    if (s[3]) { score[0]++; score[1]++; score[4]++; }
-    if (s[4]) { score[3]++; score[6]++; score[7]++; }
-    if (s[5]) { score[3]++; score[6]++; }
-    if (s[6]) { score[0]++; score[5]++; }
-    if (s[7]) { score[1]++; score[0]++; }
+    // GRIPE
+    if (s[0]) score[0] += 2;
+    if (s[1]) score[0] += 1;
+    if (s[3]) score[0] += 2;
+    if (s[7]) score[0] += 1;
+    if (s[9]) score[0] += 1;
+    if (s[10]) score[0] += 1;
 
-    int maior = 0, idx = -1;
+    // RESFRIADO
+    if (!s[0]) score[1] += 2;
+    if (s[3]) score[1] += 1;
+    if (s[7]) score[1] += 2;
+    if (s[8]) score[1] += 2;
+
+    // DENGUE
+    if (s[0]) score[2] += 2;
+    if (s[1]) score[2] += 2;
+    if (s[6]) score[2] += 2;
+    if (s[10]) score[2] += 1;
+
+    // GASTROENTERITE
+    if (s[2]) score[3] += 2;
+    if (s[4]) score[3] += 2;
+    if (s[5]) score[3] += 2;
+
+    // COVID
+    if (s[0]) score[4] += 1;
+    if (s[3]) score[4] += 2;
+    if (s[11]) score[4] += 3;
+    if (s[9]) score[4] += 1;
+
+    // LEPTOSPIROSE
+    if (s[0]) score[5] += 2;
+    if (s[1]) score[5] += 1;
+    if (s[6]) score[5] += 2;
+    if (s[4]) score[5] += 1;
+
+    // INFECÇÃO INTESTINAL
+    if (s[2]) score[6] += 2;
+    if (s[5]) score[6] += 2;
+    if (s[4]) score[6] += 1;
+
+    // INTOXICAÇÃO ALIMENTAR
+    if (s[2]) score[7] += 2;
+    if (s[4]) score[7] += 2;
+    if (!s[0]) score[7] += 1;
+
+    int totalScore = 0;
+    for (int i = 0; i < DOENCAS; i++) {
+        totalScore += score[i];
+    }
+
+    if (totalScore == 0) {
+        for (int i = 0; i < DOENCAS; i++)
+            porcentagem[i] = 0;
+        *maisProvavel = -1;
+        return;
+    }
+
+    int maior = 0;
+    int idx = -1;
 
     for (int i = 0; i < DOENCAS; i++) {
+        porcentagem[i] = (score[i] * 100.0) / totalScore;
+
         if (score[i] > maior) {
             maior = score[i];
             idx = i;
         }
     }
 
-    return idx;
+    *maisProvavel = idx;
 }
 
 // ───────── SALVAR EM ARQUIVO ─────────
@@ -141,12 +196,25 @@ void cadastrarPessoa() {
             contBairro[p.bairro]++;
     }
 
-    p.doenca = detectarDoenca(p.sintomas);
+    // 🔥 NOVO DIAGNÓSTICO
+    float porcentagem[DOENCAS];
+    int maisProvavel;
 
-    if (p.doenca != -1) {
-        contDoenca[p.doenca]++;
-        printf("\nPossivel diagnostico: %s\n", doencas[p.doenca]);
+    detectarDoenca(p.sintomas, porcentagem, &maisProvavel);
+
+    printf("\n=== POSSIVEIS DOENCAS ===\n");
+
+    for (int i = 0; i < DOENCAS; i++) {
+        if (porcentagem[i] > 0)
+            printf("%s: %.1f%%\n", doencas[i], porcentagem[i]);
+    }
+
+    if (maisProvavel != -1) {
+        p.doenca = maisProvavel;
+        contDoenca[maisProvavel]++;
+        printf("\nDiagnostico mais provavel: %s\n", doencas[maisProvavel]);
     } else {
+        p.doenca = -1;
         printf("\nDoenca nao identificada.\n");
     }
 
@@ -171,7 +239,12 @@ void buscarCPF() {
             printf("\n=== DADOS ===\n");
             printf("Nome: %s\n", pessoas[i].nome);
             printf("Bairro: %s\n", bairros[pessoas[i].bairro]);
-            printf("Doenca: %s\n", doencas[pessoas[i].doenca]);
+
+            if (pessoas[i].doenca != -1)
+                printf("Doenca: %s\n", doencas[pessoas[i].doenca]);
+            else
+                printf("Doenca: Nao identificada\n");
+
             return;
         }
     }
@@ -200,7 +273,7 @@ void alertas() {
 
     for (int i = 0; i < BAIRROS; i++) {
         if (contBairro[i] > 10) {
-            printf("⚠ ALERTA EM %s (%d sintomas)\n",
+            printf("Cuidado! ALERTA EM %s (%d sintomas)\n",
                    bairros[i], contBairro[i]);
             encontrou = 1;
         }

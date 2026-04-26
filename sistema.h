@@ -2,7 +2,7 @@
 #define SISTEMA_H
 
 #define MAX 200
-#define SINT 8
+#define SINT 12
 #define BAIRROS 12
 #define DOENCAS 8
 
