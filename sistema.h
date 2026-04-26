@@ -7,9 +7,9 @@
 #define DOENCAS 8
 
 void cadastrarPessoa();
-void registrarSintomas(int index);
 void estatisticas();
 void alertas();
+void buscarCPF();
 void menu();
 
 #endif
