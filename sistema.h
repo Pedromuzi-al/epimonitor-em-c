@@ -11,5 +11,7 @@ void estatisticas();
 void alertas();
 void buscarCPF();
 void menu();
+void carregarArquivo();
+int cpfExiste(char cpf[]);
 
 #endif

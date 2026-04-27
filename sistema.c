@@ -45,75 +45,97 @@ void limparBuffer() {
     while (getchar() != '\n');
 }
 
-// ───────── NOVO DIAGNÓSTICO (COM PORCENTAGEM) ─────────
+// ───────── CPF DUPLICADO ─────────
+int cpfExiste(char cpf[]) {
+    for (int i = 0; i < total; i++) {
+        if (strcmp(pessoas[i].cpf, cpf) == 0)
+            return 1;
+    }
+    return 0;
+}
+
+// ───────── SALVAR COM SINTOMAS ─────────
+void salvarArquivo(Pessoa p) {
+    FILE *f = fopen("dados.txt", "a");
+
+    if (!f) return;
+
+    fprintf(f, "%s;%s;%d;%s;%d;%d;",
+        p.nome, p.cpf, p.idade,
+        p.telefone, p.bairro, p.doenca);
+
+    for (int i = 0; i < SINT; i++)
+        fprintf(f, "%d", p.sintomas[i]);
+
+    fprintf(f, "\n");
+
+    fclose(f);
+}
+
+// ───────── CARREGAR ARQUIVO ─────────
+void carregarArquivo() {
+    FILE *f = fopen("dados.txt", "r");
+    if (!f) return;
+
+    while (1) {
+        Pessoa p;
+
+        if (fscanf(f, "%49[^;];%19[^;];%d;%19[^;];%d;%d;",
+            p.nome, p.cpf, &p.idade,
+            p.telefone, &p.bairro, &p.doenca) != 6)
+            break;
+
+        char s[50];
+        fscanf(f, "%s", s);
+
+        for (int i = 0; i < SINT; i++) {
+            p.sintomas[i] = s[i] - '0';
+
+            if (p.sintomas[i])
+                contBairro[p.bairro]++;
+        }
+
+        if (p.doenca != -1)
+            contDoenca[p.doenca]++;
+
+        pessoas[total++] = p;
+    }
+
+    fclose(f);
+}
+
+// ───────── SEU DIAGNÓSTICO COM PORCENTAGEM ─────────
 void detectarDoenca(int s[], float porcentagem[], int *maisProvavel) {
 
     int score[DOENCAS] = {0};
 
-    // GRIPE
-    if (s[0]) score[0] += 2;
-    if (s[1]) score[0] += 1;
-    if (s[3]) score[0] += 2;
-    if (s[7]) score[0] += 1;
-    if (s[9]) score[0] += 1;
-    if (s[10]) score[0] += 1;
+    if (s[0]) score[0]+=2;
+    if (s[3]) score[0]+=2;
+    if (s[9]) score[0]+=1;
 
-    // RESFRIADO
-    if (!s[0]) score[1] += 2;
-    if (s[3]) score[1] += 1;
-    if (s[7]) score[1] += 2;
-    if (s[8]) score[1] += 2;
+    if (!s[0]) score[1]+=2;
+    if (s[8]) score[1]+=2;
 
-    // DENGUE
-    if (s[0]) score[2] += 2;
-    if (s[1]) score[2] += 2;
-    if (s[6]) score[2] += 2;
-    if (s[10]) score[2] += 1;
+    if (s[0] && s[1]) score[2]+=3;
 
-    // GASTROENTERITE
-    if (s[2]) score[3] += 2;
-    if (s[4]) score[3] += 2;
-    if (s[5]) score[3] += 2;
+    if (s[2] && s[5]) score[3]+=3;
 
-    // COVID
-    if (s[0]) score[4] += 1;
-    if (s[3]) score[4] += 2;
-    if (s[11]) score[4] += 3;
-    if (s[9]) score[4] += 1;
+    if (s[11]) score[4]+=3;
 
-    // LEPTOSPIROSE
-    if (s[0]) score[5] += 2;
-    if (s[1]) score[5] += 1;
-    if (s[6]) score[5] += 2;
-    if (s[4]) score[5] += 1;
+    if (s[6]) score[5]+=2;
 
-    // INFECÇÃO INTESTINAL
-    if (s[2]) score[6] += 2;
-    if (s[5]) score[6] += 2;
-    if (s[4]) score[6] += 1;
+    if (s[2] && s[5]) score[6]+=2;
 
-    // INTOXICAÇÃO ALIMENTAR
-    if (s[2]) score[7] += 2;
-    if (s[4]) score[7] += 2;
-    if (!s[0]) score[7] += 1;
+    if (s[2] && s[4]) score[7]+=2;
 
     int totalScore = 0;
-    for (int i = 0; i < DOENCAS; i++) {
+    for (int i = 0; i < DOENCAS; i++)
         totalScore += score[i];
-    }
 
-    if (totalScore == 0) {
-        for (int i = 0; i < DOENCAS; i++)
-            porcentagem[i] = 0;
-        *maisProvavel = -1;
-        return;
-    }
-
-    int maior = 0;
-    int idx = -1;
+    int maior = 0, idx = -1;
 
     for (int i = 0; i < DOENCAS; i++) {
-        porcentagem[i] = (score[i] * 100.0) / totalScore;
+        porcentagem[i] = totalScore ? (score[i]*100.0)/totalScore : 0;
 
         if (score[i] > maior) {
             maior = score[i];
@@ -124,27 +146,11 @@ void detectarDoenca(int s[], float porcentagem[], int *maisProvavel) {
     *maisProvavel = idx;
 }
 
-// ───────── SALVAR EM ARQUIVO ─────────
-void salvarArquivo(Pessoa p) {
-    FILE *f = fopen("dados.txt", "a");
-
-    if (f == NULL) {
-        printf("Erro ao salvar arquivo!\n");
-        return;
-    }
-
-    fprintf(f, "%s;%s;%d;%s;%d;%d\n",
-        p.nome, p.cpf, p.idade,
-        p.telefone, p.bairro, p.doenca);
-
-    fclose(f);
-}
-
 // ───────── CADASTRO ─────────
 void cadastrarPessoa() {
 
     if (total >= MAX) {
-        printf("Limite de cadastros atingido!\n");
+        printf("Limite atingido!\n");
         return;
     }
 
@@ -154,133 +160,111 @@ void cadastrarPessoa() {
 
     printf("Nome: ");
     limparBuffer();
-    fgets(p.nome, sizeof(p.nome), stdin);
-    p.nome[strcspn(p.nome, "\n")] = 0;
+    fgets(p.nome, 50, stdin);
+    p.nome[strcspn(p.nome,"\n")] = 0;
 
     printf("CPF: ");
-    fgets(p.cpf, sizeof(p.cpf), stdin);
-    p.cpf[strcspn(p.cpf, "\n")] = 0;
+    fgets(p.cpf, 20, stdin);
+    p.cpf[strcspn(p.cpf,"\n")] = 0;
+
+    if (cpfExiste(p.cpf)) {
+        printf("CPF ja cadastrado!\n");
+        return;
+    }
 
     printf("Idade: ");
-    while (scanf("%d", &p.idade) != 1) {
-        printf("Idade invalida! Digite novamente: ");
-        limparBuffer();
-    }
+    scanf("%d",&p.idade);
 
     printf("Telefone: ");
     limparBuffer();
-    fgets(p.telefone, sizeof(p.telefone), stdin);
-    p.telefone[strcspn(p.telefone, "\n")] = 0;
+    fgets(p.telefone,20,stdin);
 
-    printf("\nEscolha o bairro:\n");
-    for (int i = 0; i < BAIRROS; i++)
-        printf("%d - %s\n", i + 1, bairros[i]);
+    printf("\nInforme seu bairro:\n");
+    for(int i=0;i<BAIRROS;i++)
+        printf("%d - %s\n",i+1,bairros[i]);
 
-    printf("Informe seu bairro: ");
-    while (scanf("%d", &p.bairro) != 1 || p.bairro < 1 || p.bairro > BAIRROS) {
-        printf("Opcao invalida! Digite novamente: ");
-        limparBuffer();
-    }
-
+    scanf("%d",&p.bairro);
     p.bairro--;
 
-    printf("\nRegistrar sintomas:\n");
+    printf("\nSintomas:\n");
 
-    for (int i = 0; i < SINT; i++) {
-        do {
-            printf("%s (1=sim 0=nao): ", sintomasNome[i]);
-            scanf("%d", &p.sintomas[i]);
-        } while (p.sintomas[i] != 0 && p.sintomas[i] != 1);
+    for(int i=0;i<SINT;i++){
+        printf("%s (1/0): ",sintomasNome[i]);
+        scanf("%d",&p.sintomas[i]);
 
-        if (p.sintomas[i] == 1)
+        if(p.sintomas[i])
             contBairro[p.bairro]++;
     }
 
-    // 🔥 NOVO DIAGNÓSTICO
     float porcentagem[DOENCAS];
-    int maisProvavel;
+    int mais;
 
-    detectarDoenca(p.sintomas, porcentagem, &maisProvavel);
+    detectarDoenca(p.sintomas,porcentagem,&mais);
 
     printf("\n=== POSSIVEIS DOENCAS ===\n");
 
-    for (int i = 0; i < DOENCAS; i++) {
-        if (porcentagem[i] > 0)
-            printf("%s: %.1f%%\n", doencas[i], porcentagem[i]);
-    }
+    for(int i=0;i<DOENCAS;i++)
+        if(porcentagem[i]>0)
+            printf("%s: %.1f%%\n",doencas[i],porcentagem[i]);
 
-    if (maisProvavel != -1) {
-        p.doenca = maisProvavel;
-        contDoenca[maisProvavel]++;
-        printf("\nDiagnostico mais provavel: %s\n", doencas[maisProvavel]);
-    } else {
-        p.doenca = -1;
-        printf("\nDoenca nao identificada.\n");
+    p.doenca = mais;
+
+    if(mais!=-1){
+        contDoenca[mais]++;
+        printf("Mais provavel: %s\n",doencas[mais]);
     }
 
     pessoas[total++] = p;
 
     salvarArquivo(p);
 
-    printf("\nCadastro salvo com sucesso!\n");
+    printf("Salvo!\n");
 }
 
-// ───────── BUSCAR CPF ─────────
-void buscarCPF() {
-    char cpf[20];
+// ───────── ESTATISTICAS COM RANKING ─────────
+void estatisticas() {
 
-    printf("Digite o CPF: ");
-    limparBuffer();
-    fgets(cpf, sizeof(cpf), stdin);
-    cpf[strcspn(cpf, "\n")] = 0;
+    printf("\n=== BAIRROS ===\n");
 
-    for (int i = 0; i < total; i++) {
-        if (strcmp(pessoas[i].cpf, cpf) == 0) {
-            printf("\n=== DADOS ===\n");
-            printf("Nome: %s\n", pessoas[i].nome);
-            printf("Bairro: %s\n", bairros[pessoas[i].bairro]);
+    for(int i=0;i<BAIRROS;i++)
+        printf("%s: %d\n",bairros[i],contBairro[i]);
 
-            if (pessoas[i].doenca != -1)
-                printf("Doenca: %s\n", doencas[pessoas[i].doenca]);
-            else
-                printf("Doenca: Nao identificada\n");
+    printf("\n=== RANKING DOENCAS ===\n");
 
-            return;
+    for(int i=0;i<DOENCAS;i++){
+        for(int j=i+1;j<DOENCAS;j++){
+            if(contDoenca[j]>contDoenca[i]){
+                int t=contDoenca[i];
+                contDoenca[i]=contDoenca[j];
+                contDoenca[j]=t;
+
+                char *n=doencas[i];
+                doencas[i]=doencas[j];
+                doencas[j]=n;
+            }
         }
     }
 
-    printf("Nao encontrado!\n");
+    for(int i=0;i<DOENCAS;i++)
+        printf("%dº %s (%d)\n",i+1,doencas[i],contDoenca[i]);
 }
 
-// ───────── ESTATISTICAS ─────────
-void estatisticas() {
-    printf("\n=== ESTATISTICAS ===\n");
-
-    printf("\nPor bairro:\n");
-    for (int i = 0; i < BAIRROS; i++)
-        printf("%s: %d sintomas\n", bairros[i], contBairro[i]);
-
-    printf("\nDoencas:\n");
-    for (int i = 0; i < DOENCAS; i++)
-        printf("%s: %d casos\n", doencas[i], contDoenca[i]);
-}
-
-// ───────── ALERTAS ─────────
+// ───────── ALERTAS COM NÍVEL ─────────
 void alertas() {
+
     printf("\n=== ALERTAS ===\n");
 
-    int encontrou = 0;
+    for(int i=0;i<BAIRROS;i++){
 
-    for (int i = 0; i < BAIRROS; i++) {
-        if (contBairro[i] > 10) {
-            printf("Cuidado! ALERTA EM %s (%d sintomas)\n",
-                   bairros[i], contBairro[i]);
-            encontrou = 1;
-        }
+        if(contBairro[i]>=30)
+            printf("🔥 CRITICO: %s\n",bairros[i]);
+
+        else if(contBairro[i]>=20)
+            printf("🚨 ALTO: %s\n",bairros[i]);
+
+        else if(contBairro[i]>=10)
+            printf("⚠ MODERADO: %s\n",bairros[i]);
     }
-
-    if (!encontrou)
-        printf("Nenhum alerta ativo.\n");
 }
 
 // ───────── MENU ─────────
@@ -288,29 +272,14 @@ void menu() {
     int op;
 
     do {
-        printf("\n=== EPIMONITOR ===\n");
-        printf("1 - Cadastrar pessoa\n");
-        printf("2 - Ver estatisticas\n");
-        printf("3 - Ver alertas\n");
-        printf("4 - Buscar por CPF\n");
-        printf("5 - Sair\n");
+        printf("\n1-Cadastrar\n2-Estatisticas\n3-Alertas\n4-Sair\n");
+        scanf("%d",&op);
 
-        printf("Escolha: ");
-
-        if (scanf("%d", &op) != 1) {
-            printf("Entrada invalida!\n");
-            limparBuffer();
-            continue;
-        }
-
-        switch(op) {
+        switch(op){
             case 1: cadastrarPessoa(); break;
             case 2: estatisticas(); break;
             case 3: alertas(); break;
-            case 4: buscarCPF(); break;
-            case 5: printf("Saindo...\n"); break;
-            default: printf("Opcao invalida!\n");
         }
 
-    } while (op != 5);
+    } while(op!=4);
 }
