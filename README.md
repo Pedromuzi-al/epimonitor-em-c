@@ -1,109 +1,192 @@
-📌 Sobre o projeto
+# 🩺 EPIMONITOR
 
-O Epimonitor em C é um sistema simples feito em linguagem C que simula um monitoramento de sintomas na população.
-A ideia é coletar dados de pessoas, registrar sintomas e, com base nisso, indicar possíveis doenças e gerar alertas por bairro.
+Sistema simples de monitoramento de sintomas e possíveis doenças por bairro, desenvolvido em linguagem C.
 
-Esse tipo de sistema pode ajudar a entender como doenças podem se espalhar em uma comunidade.
+## 📌 Objetivo
 
-⚙️ Como o sistema funciona
+O EPIMONITOR foi criado com a proposta de simular um sistema básico de vigilância epidemiológica, permitindo registrar sintomas de pessoas e identificar possíveis doenças com base nesses dados.
+Além disso, o sistema acompanha a situação de cada bairro, podendo gerar alertas quando há muitos casos.
 
-O programa funciona em etapas bem simples:
+---
 
-1️⃣ Cadastro da pessoa
+## ⚙️ Funcionalidades
 
-O usuário informa:
+* Cadastro de pessoas com:
 
-Nome
-CPF
-Idade
-Telefone
-Bairro onde mora
+  * Nome
+  * CPF
+  * Idade
+  * Telefone
+  * Bairro
 
-👉 Os bairros já estão pré-definidos no sistema.
+* Registro de sintomas:
 
-2️⃣ Registro de sintomas
+  * Febre
+  * Dor de cabeça
+  * Dor de barriga
+  * Tosse
+  * Vômito
+  * Diarreia
+  * Dor no corpo
+  * Dor de garganta
+  * Coriza
+  * Fadiga
+  * Calafrios
+  * Perda de olfato
 
-Após o cadastro, o usuário pode escolher registrar sintomas.
+* Diagnóstico inteligente:
 
-Ele responde com:
+  * O sistema analisa os sintomas informados
+  * Calcula uma **porcentagem de chance** para cada doença
+  * Indica a doença mais provável
 
-1 → sim
-0 → não
+* Doenças analisadas:
 
-Para sintomas como:
+  * Gripe
+  * Resfriado
+  * Dengue
+  * Gastroenterite
+  * COVID-19
+  * Leptospirose
+  * Infecção intestinal
+  * Intoxicação alimentar
 
-Febre
-Dor de cabeça
-Dor de barriga
-Tosse
-Vômito
-Diarreia
-Dor no corpo
-Dor de garganta
-3️⃣ Identificação de possível doença
+---
 
-O sistema analisa os sintomas e tenta associar com doenças como:
+## 📊 Estatísticas
 
-Gripe
-Resfriado
-Dengue
-Gastroenterite
-COVID-19
-Leptospirose
-Infecção intestinal
-Intoxicação alimentar
+O sistema gera:
 
-⚠️ Importante:
-Isso não é um diagnóstico médico, apenas uma simulação baseada em lógica simples.
+* Quantidade de sintomas por bairro
+* Ranking de doenças mais registradas
 
-4️⃣ Estatísticas
+Exemplo:
 
-O sistema mostra:
+```
+1º COVID-19 (10 casos)
+2º Gripe (7 casos)
+```
 
-Quantidade de sintomas por bairro
-Quantidade de casos por doença
-5️⃣ Sistema de alerta
+---
 
-Se um bairro tiver mais de 10 sintomas registrados, ele entra em:
+## 🚨 Sistema de Alertas
 
-⚠️ ALERTA
+Os bairros entram em alerta conforme o número de sintomas registrados:
 
-Isso indica que pode haver um aumento de casos naquela região.
+* ⚠ Moderado → 10+ sintomas
+* 🚨 Alto → 20+ sintomas
+* 🔥 Crítico → 30+ sintomas
 
-🖥️ Como executar o programa
-▶️ Compilar
+---
 
-No terminal:
+## 💾 Armazenamento de Dados
 
-gcc *.c -o sistema
-▶️ Executar
-.\sistema.exe
-📁 Estrutura do projeto
-main.c → controla o fluxo do programa
-sistema.c → contém toda a lógica
-sistema.h → declara funções e constantes
-🎯 Objetivo do projeto
+Os dados são salvos automaticamente no arquivo:
 
-Este projeto foi desenvolvido com o objetivo de:
+```
+dados.txt
+```
 
-Praticar programação em C
-Trabalhar com estruturas (struct)
-Criar um sistema organizado em múltiplos arquivos
-Simular um problema real (monitoramento de saúde)
-🚀 Possíveis melhorias
+Cada registro contém:
 
-No futuro, o sistema pode evoluir com:
+* Informações da pessoa
+* Bairro
+* Doença detectada
+* Sintomas informados
 
-Salvamento em arquivo (banco de dados simples)
-Busca por CPF
-Interface gráfica
-Relatórios automáticos
-👨‍💻 Conclusão
+### 🔄 Persistência
 
-O Epimonitor mostra como conceitos básicos de programação podem ser usados para criar soluções úteis no mundo real.
+Ao iniciar o programa, os dados são carregados automaticamente do arquivo, evitando perda de informações.
 
-Mesmo sendo simples, ele já demonstra:
+---
 
-organização de código
-uso de lógica
-manipulação de dados
+## 🔒 Validação
+
+* O sistema **não permite CPF duplicado**
+* Valida entradas inválidas (ex: idade, opções)
+
+---
+
+## ▶️ Como executar
+
+### Compilar:
+
+```
+gcc main.c sistema.c -o sistema
+```
+
+### Executar:
+
+```
+./sistema
+```
+
+(No Windows:)
+
+```
+sistema.exe
+```
+
+---
+
+## 📁 Estrutura do Projeto
+
+```
+📦 epimonitor
+ ┣ 📄 main.c
+ ┣ 📄 sistema.c
+ ┣ 📄 sistema.h
+ ┣ 📄 dados.txt
+ ┗ 📄 README.md
+```
+
+---
+
+## 🧠 Lógica do Sistema
+
+O diagnóstico funciona com base em um sistema de pontuação:
+
+* Cada sintoma contribui com pontos para determinadas doenças
+* A soma dos pontos gera uma porcentagem
+* A doença com maior pontuação é considerada a mais provável
+
+---
+
+## 🚀 Melhorias Implementadas
+
+Durante o desenvolvimento, foram adicionadas melhorias importantes:
+
+* ✔ Salvamento completo dos sintomas
+* ✔ Carregamento automático dos dados
+* ✔ Bloqueio de CPF duplicado
+* ✔ Sistema de diagnóstico com porcentagem
+* ✔ Ranking de doenças
+* ✔ Sistema de alertas com níveis
+
+---
+
+## 📚 Considerações
+
+Este projeto foi desenvolvido com fins acadêmicos, com foco em:
+
+* prática da linguagem C
+* manipulação de arquivos
+* uso de estruturas (struct)
+* lógica de programação
+
+Apesar de simples, ele representa uma base para sistemas maiores na área de saúde e análise de dados.
+
+---
+
+## 👨‍💻 Autor
+
+Projeto desenvolvido por estudante de Ciência da Computação.
+
+---
+
+## ⚠️ Observação
+
+Este sistema **não substitui diagnóstico médico real**.
+Os resultados são apenas simulações baseadas em lógica simples.
+
+---
