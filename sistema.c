@@ -45,6 +45,10 @@ void limparBuffer() {
     while (getchar() != '\n');
 }
 
+void removerQuebrasLinha(char texto[]) {
+    texto[strcspn(texto, "\r\n")] = '\0';
+}
+
 // ───────── CPF DUPLICADO ─────────
 int cpfExiste(char cpf[]) {
     for (int i = 0; i < total; i++) {
@@ -54,11 +58,52 @@ int cpfExiste(char cpf[]) {
     return 0;
 }
 
+// ───────── VALIDAÇÃO DE CPF ─────────
+int validarCPF(const char *cpf) {
+    int soma = 0, resto, i;
+
+    if (strlen(cpf) != 11) return 0;
+
+    for (i = 0; i < 9; i++)
+        soma += (cpf[i] - '0') * (10 - i);
+
+    resto = (soma * 10) % 11;
+    if (resto == 10 || resto == 11) resto = 0;
+    if (resto != (cpf[9] - '0')) return 0;
+
+    soma = 0;
+    for (i = 0; i < 10; i++)
+        soma += (cpf[i] - '0') * (11 - i);
+
+    resto = (soma * 10) % 11;
+    if (resto == 10 || resto == 11) resto = 0;
+
+    return resto == (cpf[10] - '0');
+}
+
+// ───────── VALIDAÇÃO DE NOME ─────────
+int validarNome(const char *nome) {
+    return strlen(nome) > 0;
+}
+
+// ───────── VALIDAÇÃO DE TELEFONE ─────────
+int validarTelefone(const char *telefone) {
+    if (strlen(telefone) < 10 || strlen(telefone) > 15) return 0;
+    for (int i = 0; telefone[i] != '\0'; i++) {
+        if (telefone[i] < '0' || telefone[i] > '9') return 0;
+    }
+    return 1;
+}
+
 // ───────── SALVAR COM SINTOMAS ─────────
 void salvarArquivo(Pessoa p) {
     FILE *f = fopen("dados.txt", "a");
 
     if (!f) return;
+
+    removerQuebrasLinha(p.nome);
+    removerQuebrasLinha(p.cpf);
+    removerQuebrasLinha(p.telefone);
 
     fprintf(f, "%s;%s;%d;%s;%d;%d;",
         p.nome, p.cpf, p.idade,
@@ -80,13 +125,17 @@ void carregarArquivo() {
     while (1) {
         Pessoa p;
 
-        if (fscanf(f, "%49[^;];%19[^;];%d;%19[^;];%d;%d;",
+        if (fscanf(f, " %49[^;];%19[^;];%d;%19[^;];%d;%d;",
             p.nome, p.cpf, &p.idade,
             p.telefone, &p.bairro, &p.doenca) != 6)
             break;
 
+        removerQuebrasLinha(p.nome);
+        removerQuebrasLinha(p.cpf);
+        removerQuebrasLinha(p.telefone);
+
         char s[50];
-        fscanf(f, "%s", s);
+        fscanf(f, "%49s", s);
 
         for (int i = 0; i < SINT; i++) {
             p.sintomas[i] = s[i] - '0';
@@ -146,9 +195,8 @@ void detectarDoenca(int s[], float porcentagem[], int *maisProvavel) {
     *maisProvavel = idx;
 }
 
-// ───────── CADASTRO ─────────
+// ───────── CADASTRO (ATUALIZADO) ─────────
 void cadastrarPessoa() {
-
     if (total >= MAX) {
         printf("Limite atingido!\n");
         return;
@@ -158,64 +206,77 @@ void cadastrarPessoa() {
 
     printf("\n=== CADASTRO ===\n");
 
-    printf("Nome: ");
-    limparBuffer();
-    fgets(p.nome, 50, stdin);
-    p.nome[strcspn(p.nome,"\n")] = 0;
+    do {
+        printf("Nome: ");
+        limparBuffer();
+        fgets(p.nome, 50, stdin);
+        p.nome[strcspn(p.nome, "\n")] = 0;
 
-    printf("CPF: ");
-    fgets(p.cpf, 20, stdin);
-    p.cpf[strcspn(p.cpf,"\n")] = 0;
+        if (!validarNome(p.nome)) {
+            printf("Nome invalido! Tente novamente.\n");
+        }
+    } while (!validarNome(p.nome));
 
-    if (cpfExiste(p.cpf)) {
-        printf("CPF ja cadastrado!\n");
-        return;
-    }
+    do {
+        printf("CPF (somente numeros): ");
+        fgets(p.cpf, 20, stdin);
+        p.cpf[strcspn(p.cpf, "\n")] = 0;
+
+        if (!validarCPF(p.cpf)) {
+            printf("CPF invalido! Tente novamente.\n");
+        } else if (cpfExiste(p.cpf)) {
+            printf("CPF ja cadastrado!\n");
+            return;
+        }
+    } while (!validarCPF(p.cpf));
 
     printf("Idade: ");
-    scanf("%d",&p.idade);
+    scanf("%d", &p.idade);
 
-    printf("Telefone: ");
-    limparBuffer();
-    fgets(p.telefone,20,stdin);
+    do {
+        printf("Telefone: ");
+        limparBuffer();
+        fgets(p.telefone, 20, stdin);
+        p.telefone[strcspn(p.telefone, "\n")] = 0;
+
+        if (!validarTelefone(p.telefone)) {
+            printf("Telefone invalido! Tente novamente.\n");
+        }
+    } while (!validarTelefone(p.telefone));
 
     printf("\nInforme seu bairro:\n");
-    for(int i=0;i<BAIRROS;i++)
-        printf("%d - %s\n",i+1,bairros[i]);
+    for (int i = 0; i < BAIRROS; i++)
+        printf("%d - %s\n", i + 1, bairros[i]);
 
-    scanf("%d",&p.bairro);
+    scanf("%d", &p.bairro);
     p.bairro--;
 
     printf("\nSintomas:\n");
+    for (int i = 0; i < SINT; i++) {
+        printf("%s (1/0): ", sintomasNome[i]);
+        scanf("%d", &p.sintomas[i]);
 
-    for(int i=0;i<SINT;i++){
-        printf("%s (1/0): ",sintomasNome[i]);
-        scanf("%d",&p.sintomas[i]);
-
-        if(p.sintomas[i])
+        if (p.sintomas[i])
             contBairro[p.bairro]++;
     }
 
     float porcentagem[DOENCAS];
     int mais;
-
-    detectarDoenca(p.sintomas,porcentagem,&mais);
+    detectarDoenca(p.sintomas, porcentagem, &mais);
 
     printf("\n=== POSSIVEIS DOENCAS ===\n");
-
-    for(int i=0;i<DOENCAS;i++)
-        if(porcentagem[i]>0)
-            printf("%s: %.1f%%\n",doencas[i],porcentagem[i]);
+    for (int i = 0; i < DOENCAS; i++)
+        if (porcentagem[i] > 0)
+            printf("%s: %.1f%%\n", doencas[i], porcentagem[i]);
 
     p.doenca = mais;
 
-    if(mais!=-1){
+    if (mais != -1) {
         contDoenca[mais]++;
-        printf("Mais provavel: %s\n",doencas[mais]);
+        printf("Mais provavel: %s\n", doencas[mais]);
     }
 
     pessoas[total++] = p;
-
     salvarArquivo(p);
 
     printf("Salvo!\n");
@@ -246,7 +307,7 @@ void estatisticas() {
     }
 
     for(int i=0;i<DOENCAS;i++)
-        printf("%dº %s (%d)\n",i+1,doencas[i],contDoenca[i]);
+        printf("%dº %s (%d)\n", i + 1, doencas[i], contDoenca[i]);
 }
 
 // ───────── ALERTAS COM NÍVEL ─────────
@@ -267,19 +328,54 @@ void alertas() {
     }
 }
 
+// ───────── EXIBIR CADASTROS (CORRIGIDO) ─────────
+void exibirCadastros() {
+    if (total == 0) {
+        printf("\nNenhuma pessoa cadastrada.\n");
+        return;
+    }
+
+    printf("\n=== LISTA DE CADASTROS ===\n");
+    for (int i = 0; i < total; i++) {
+        printf("\nPessoa %d:\n", i + 1);
+        printf("Nome: %s\n", pessoas[i].nome);
+        printf("CPF: %s\n", pessoas[i].cpf);
+        printf("Idade: %d\n", pessoas[i].idade);
+        printf("Telefone: %s\n", pessoas[i].telefone);
+        printf("Bairro: %s\n", bairros[pessoas[i].bairro]);
+        printf("Doenca mais provavel: %s\n", pessoas[i].doenca != -1 ? doencas[pessoas[i].doenca] : "Nenhuma");
+        printf("Sintomas:\n");
+        int hasSintomas = 0;
+        for (int j = 0; j < SINT; j++) {
+            if (pessoas[i].sintomas[j]) {
+                printf("- %s\n", sintomasNome[j]);
+                hasSintomas = 1;
+            }
+        }
+        if (!hasSintomas) {
+            printf("- Nenhum\n");
+        }
+        printf("-----------------------------\n");
+    }
+}
+
 // ───────── MENU ─────────
 void menu() {
     int op;
 
     do {
-        printf("\n1-Cadastrar\n2-Estatisticas\n3-Alertas\n4-Sair\n");
-        scanf("%d",&op);
+        printf("\n=== EPIMONITOR ===\n");
+        printf("\n1-Cadastrar\n2-Estatisticas\n3-Alertas\n4-Ver Cadastros\n5-Sair\n");
+        scanf("%d", &op);
 
         switch(op){
-            case 1: cadastrarPessoa(); break;
-            case 2: estatisticas(); break;
-            case 3: alertas(); break;
+            case 1: cadastrarPessoa(); printf("\n-----------------------------\n"); break;
+            case 2: estatisticas(); printf("\n-----------------------------\n"); break;
+            case 3: alertas(); printf("\n-----------------------------\n"); break;
+            case 4: exibirCadastros(); printf("\n-----------------------------\n"); break;
         }
 
-    } while(op!=4);
+    } while(op!=5);
+
+    printf("\n-----------------------------\n");
 }
